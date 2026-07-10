@@ -109,7 +109,9 @@ def env_progress(run):
                 if not line:
                     continue
                 try:
-                    counter[json.loads(line)["question"]] += 1
+                    data = json.loads(line)
+                    if data.get("termination") != "llm_error_occurred":
+                        counter[data["question"]] += 1
                 except Exception:
                     continue
     budget = int(run["sampling_budget"])

@@ -131,7 +131,10 @@ cd WebAgent/ParallelMuse
 export OPENROUTER_API_KEY=...
 OUT=./bcp_results/pm_gpt_oss_20b
 QA=/path/to/BrowseComp-Plus/topics-qrels/queries.tsv
-M="openai/gpt-oss-20b"; EB='{"reasoning": {"enabled": true}}'
+# require_parameters 让 OpenRouter 只路由到支持请求中全部参数（logprobs/top_logprobs/
+# stop/presence_penalty）的 provider——gpt-oss-20b 只有 WandB/Novita/Parasail 全支持；
+# 不锁定的话 logprobs 会时有时无，甚至路由到不支持 stop 的 provider 破坏 ReAct 循环。
+M="openai/gpt-oss-20b"; EB='{"reasoning": {"enabled": true}, "provider": {"require_parameters": true}}'
 
 # 0. 冒烟 + logprobs 探测（1 题）
 python bcp_partial_rollout.py --qa_file_path $QA --limit 1 --output_dir $OUT \

@@ -22,7 +22,9 @@ common:
   llm_base_urls:
     - https://openrouter.ai/api/v1
   llm_api_key_env: OPENROUTER_API_KEY
-  extra_body: '{"reasoning": {"enabled": true}}'
+  # require_parameters: only route to providers supporting all requested params
+  # (stop/presence_penalty/logprobs) — for gpt-oss-20b that's WandB/Novita/Parasail.
+  extra_body: '{"reasoning": {"enabled": true}, "provider": {"require_parameters": true}}'
 
   temperature: 0.6
   top_p: 0.95

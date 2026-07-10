@@ -521,7 +521,12 @@ async def main(args, search_tool, retriever_meta):
     if os.path.exists(full_traj_rollout_output_file_path):
         existing_rollouts = read_jsonl(full_traj_rollout_output_file_path)
         for visited_data in existing_rollouts:
-            visited_counter[visited_data["question"]] += 1
+            # Errored trajectories don't count toward the budget: a transient
+            # API outage must not leave a question permanently short of usable
+            # rollouts (stage B asserts on this count). Re-running stage A
+            # regenerates them.
+            if visited_data.get("termination") != "llm_error_occurred":
+                visited_counter[visited_data["question"]] += 1
 
     # resume partial rollout (generic: dataset size from the input file itself)
     fully_visited_question = []

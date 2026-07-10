@@ -122,6 +122,48 @@ Step 3 在 `--output-dir` 下每题一个 `run_*.json`：`query_id` / `status` /
 retriever 溯源）。可直接喂 BrowseComp-Plus evaluator。重跑会跳过已 completed
 的 query_id。
 
+## 竞品实验操作手册（gpt-oss-20b，BCP 前 100 条，预算 8）
+
+按论文方法（每题 8 条 = 1 初始 + 2 分支点 × 3 续写 + 1 补充 → 压缩聚合出 1 个答案）：
+
+```bash
+cd WebAgent/ParallelMuse
+export OPENROUTER_API_KEY=...
+OUT=./bcp_results/pm_gpt_oss_20b
+QA=/path/to/BrowseComp-Plus/topics-qrels/queries.tsv
+M="openai/gpt-oss-20b"; EB='{"reasoning": {"enabled": true}}'
+
+# 0. 冒烟 + logprobs 探测（1 题）
+python bcp_partial_rollout.py --qa_file_path $QA --limit 1 --output_dir $OUT \
+  --llm-model $M --extra-body "$EB" --partial_sampling_mode none --sampling_budget 1
+python -c "import json;d=[json.loads(l) for l in open('$OUT/queries_openai_gpt-oss-20b_1_none_initial_rollout.jsonl')];print('step_ppl:',[m.get('step_ppl') for t in d for m in t['rollout'] if m['role']=='assistant'][:3])"
+
+# 若 step_ppl 有数值 → 完整方法：
+# 1. Step A 初始轨迹（每题 1 条）
+python bcp_partial_rollout.py --qa_file_path $QA --limit 100 --output_dir $OUT \
+  --llm-model $M --extra-body "$EB" --partial_sampling_mode none --sampling_budget 1
+# 2. Step B 不确定性引导部分 rollout，补到每题 8 条
+python bcp_partial_rollout.py --qa_file_path $QA --limit 100 --output_dir $OUT \
+  --llm-model $M --extra-body "$EB" --partial_sampling_mode tool_call_ppl \
+  --initial_rollout_num 1 --partial_sampling_topk 2 \
+  --partial_sampling_times_per_pos 3 --sampling_budget 8
+# 3. Step C 聚合
+python bcp_aggregate.py \
+  --rollout-file $OUT/queries_openai_gpt-oss-20b_1_tool_call_ppl_2_1_3.jsonl \
+  --output-dir $OUT/aggregated --llm-model $M --extra-body "$EB" --store-reports
+
+# 若 step_ppl 全为 null → 纯并行路线（论文的 trajectory-level 并行 + 聚合设置）：
+python bcp_partial_rollout.py --qa_file_path $QA --limit 100 --output_dir $OUT \
+  --llm-model $M --extra-body "$EB" --partial_sampling_mode none --sampling_budget 8
+python bcp_aggregate.py \
+  --rollout-file $OUT/queries_openai_gpt-oss-20b_1_none_initial_rollout.jsonl \
+  --output-dir $OUT/aggregated --llm-model $M --extra-body "$EB" --store-reports
+```
+
+`$OUT/aggregated/` 即 BrowseComp-Plus evaluator 的输入目录。论文需报告：
+方法变体（uncertainty-guided vs trajectory-level）、每题轨迹数（metadata.
+n_trajectories）、总 search 次数、retriever 溯源（metadata 自带）。
+
 ## 公平性口径
 
 - 检索面与 Tongyi ReAct 竞品实验完全一致：同一 Milvus collection、同一 embedding

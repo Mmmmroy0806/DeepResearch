@@ -1,0 +1,58 @@
+# 8 independent ReAct rollouts (ParallelMuse stage-1, sampling_budget=1 each)
+# gpt-oss-20b via OpenRouter + deepsearch_edi baseline retriever.
+#
+# Mirrors deepsearch_edi/benchmarking/openai_config_bcp/
+# openai_gpt_oss_20b_react_baseline_512tok_verbatim_0521.json:
+#   - model openai/gpt-oss-20b, base_url openrouter, reasoning enabled
+#   - retriever: browsecompplus_v2_baseline_512tok, hybrid, top_k=3,
+#     add_instruction=true, baseline=true (via ../../inference/configs/
+#     bcp_baseline_retriever.json — identical values)
+#   - max_llm_calls_per_run 100 -> max_turn 100
+# Sampling params (temperature/top_p/presence_penalty) follow ParallelMuse's
+# own ReAct loop (0.6/0.95/1.1), since the agent here is ParallelMuse's react.
+#
+# Run:   python run_react_rollouts.py --config configs/react8_gpt_oss_20b.yaml --max-parallel 3
+# Watch: python run_react_rollouts.py --config configs/react8_gpt_oss_20b.yaml --status
+
+common:
+  qa_file_path: /Users/mmmroym/Downloads/huawei/gnosis_jiuwen/BrowseComp-Plus/topics-qrels/queries.tsv
+  retriever_config: ../../inference/configs/bcp_baseline_retriever.json
+
+  llm_model: openai/gpt-oss-20b
+  llm_base_urls:
+    - https://openrouter.ai/api/v1
+  llm_api_key_env: OPENROUTER_API_KEY
+  extra_body: '{"reasoning": {"enabled": true}}'
+
+  temperature: 0.6
+  top_p: 0.95
+  presence_penalty: 1.1
+  max_turn: 100
+  max_completion_tokens: 32768
+  max_context_length: 102400
+
+  partial_sampling_mode: none
+  sampling_budget: 1
+  max_llm_workers: 8
+  max_search_workers: 4
+  limit: 0            # set to 1 for a smoke test of every env
+
+  convert_to_eval: true   # after an env completes, emit evaluator files to <output_dir>/eval
+
+runs:
+  - name: env1
+    output_dir: ./bcp_results/react8_gpt_oss_20b/env1
+  - name: env2
+    output_dir: ./bcp_results/react8_gpt_oss_20b/env2
+  - name: env3
+    output_dir: ./bcp_results/react8_gpt_oss_20b/env3
+  - name: env4
+    output_dir: ./bcp_results/react8_gpt_oss_20b/env4
+  - name: env5
+    output_dir: ./bcp_results/react8_gpt_oss_20b/env5
+  - name: env6
+    output_dir: ./bcp_results/react8_gpt_oss_20b/env6
+  - name: env7
+    output_dir: ./bcp_results/react8_gpt_oss_20b/env7
+  - name: env8
+    output_dir: ./bcp_results/react8_gpt_oss_20b/env8

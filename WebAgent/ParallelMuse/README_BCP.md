@@ -82,6 +82,29 @@ python bcp_traj_to_eval.py \
   --model-label deepseek/deepseek-v4-flash
 ```
 
+## N 次独立 ReAct rollout（YAML 编排）
+
+跑"同一配置 × 8 个独立环境"（如 gpt-oss-20b 的 8 次 ReAct，对齐
+deepsearch_edi 的 `openai_gpt_oss_20b_react_baseline_512tok_verbatim_0521.json`）：
+
+```bash
+# 一次并发 3 个环境，跑完自动补位，直到 8 个全完成；可 Ctrl-C 后重跑续传
+python run_react_rollouts.py --config configs/react8_gpt_oss_20b.yaml --max-parallel 3
+
+# 查看各环境进度
+python run_react_rollouts.py --config configs/react8_gpt_oss_20b.yaml --status
+
+# 只跑指定环境
+python run_react_rollouts.py --config configs/react8_gpt_oss_20b.yaml --only env1,env2
+
+# 冒烟测试：把 YAML 里 common.limit 改为 1 再跑
+```
+
+每个环境独立目录：轨迹 jsonl + `orchestrator.log` + `env_meta.json`（记录该
+环境的完整配置、起止时间、退出码、进度）+ `eval/`（`convert_to_eval: true`
+时自动转出的 evaluator 文件）。环境完成的判定是"每题都有 ≥ sampling_budget
+条轨迹"，所以中断重跑既不会重复也不会漏。
+
 预算关系（原版约束，Step 2 会 assert）：
 `sampling_budget >= initial_rollout_num * (1 + topk * rounds * times_per_pos)`。
 上例 2 * (1 + 2*1*1) = 6 <= 8，多出的 2 条会补成普通轨迹级 rollout。

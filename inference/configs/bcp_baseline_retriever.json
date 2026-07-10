@@ -1,0 +1,24 @@
+{
+  "retriever_name": "deepsearch_edi_baseline_milvus",
+  "milvus": {
+    "uri": "http://127.0.0.1:19530",
+    "token": "",
+    "database_name": "deepsearch_benchmarks",
+    "collection_name": "browsecompplus_v2_baseline_512tok"
+  },
+  "embedding": {
+    "model_name": "qwen/qwen3-embedding-8b",
+    "api_key": "${OPENROUTER_API_KEY}",
+    "base_url": "https://openrouter.ai/api/v1/embeddings",
+    "timeout": 100
+  },
+  "retrieval": {
+    "top_k": 3,
+    "top_k_multiply_factor": 5,
+    "mode": "hybrid",
+    "add_instruction": true,
+    "baseline": true,
+    "include_leading_chunk": false,
+    "snippet_max_tokens": 0
+  }
+}
